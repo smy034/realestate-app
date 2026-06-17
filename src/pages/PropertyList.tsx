@@ -7,6 +7,7 @@ interface Property {
   rent: number;
   area: string;
   layout: string;
+  user_id?: string;
 }
 
 interface PropertyListProps {
@@ -16,6 +17,7 @@ interface PropertyListProps {
 
 const PropertyList = ({ session, onLogout }: PropertyListProps) => {
   const [properties, setProperties] = useState<Property[]>([]);
+  const isAdmin = session?.user?.email?.toLowerCase() === 'kanri@exsmpie.com';
   const [name, setName] = useState('');
   const [rent, setRent] = useState('');
   const [area, setArea] = useState('');
@@ -28,10 +30,15 @@ const PropertyList = ({ session, onLogout }: PropertyListProps) => {
 
   const loadProperties = async () => {
     setMessage('');
-    const { data, error } = await supabase
+    let query = supabase
       .from('properties')
-      .select('id, name, rent, area, layout')
-      .order('created_at', { ascending: false });
+      .select('id, name, rent, area, layout, user_id');
+
+    if (!isAdmin) {
+      query = query.eq('user_id', userId ?? '');
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
       setMessage(`物件の取得に失敗しました: ${error.message}`);

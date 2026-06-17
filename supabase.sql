@@ -11,10 +11,18 @@ create table if not exists properties (
 );
 
 alter table properties enable row level security;
+-- 既にポリシーが存在する場合に備えて、一度削除してから作成する
+-- Supabase の SQL エディタで実行する際、重複エラーを防ぎます
+drop policy if exists "Select own properties" on properties;
+drop policy if exists "Insert own properties" on properties;
+drop policy if exists "Update own properties" on properties;
+drop policy if exists "Delete own properties" on properties;
 
 create policy "Select own properties" on properties
   for select
-  using (user_id = auth.uid());
+  using (
+    user_id = auth.uid() OR auth.jwt() ->> 'email' = 'kanri@exsmpie.com'
+  );
 
 create policy "Insert own properties" on properties
   for insert
@@ -22,9 +30,15 @@ create policy "Insert own properties" on properties
 
 create policy "Update own properties" on properties
   for update
-  using (user_id = auth.uid())
-  with check (user_id = auth.uid());
+  using (
+    user_id = auth.uid() OR auth.jwt() ->> 'email' = 'kanri@exsmpie.com'
+  )
+  with check (
+    user_id = auth.uid() OR auth.jwt() ->> 'email' = 'kanri@exsmpie.com'
+  );
 
 create policy "Delete own properties" on properties
   for delete
-  using (user_id = auth.uid());
+  using (
+    user_id = auth.uid() OR auth.jwt() ->> 'email' = 'kanri@exsmpie.com'
+  );
