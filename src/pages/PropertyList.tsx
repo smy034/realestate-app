@@ -131,6 +131,48 @@ const PropertyList = ({ session, onLogout }: PropertyListProps) => {
     setLoading(false);
   };
 
+  // 管理者用：物件データをCSVでダウンロードする
+  const downloadAsCSV = () => {
+    // CSVのヘッダー
+    const headers = ['物件名', '家賃（円）', 'エリア', '間取り', 'ユーザーID'];
+    
+    // 物件データの行を作成
+    const rows = properties.map((property) => [
+      property.name,
+      property.rent,
+      property.area,
+      property.layout,
+      property.user_id || '',
+    ]);
+    
+    // ヘッダーとデータをマージしてCSV形式の文字列に変換
+    const csvContent = [headers, ...rows]
+      .map((row) =>
+        row
+          .map((cell) => {
+            // セル内にカンマやダブルクォートが含まれる場合に対応
+            const cellStr = String(cell);
+            return `"${cellStr.replace(/"/g, '""')}"`;
+          })
+          .join(',')
+      )
+      .join('\n');
+    
+    // BOMをUTF-8に対応させるため、先頭にEFBBBFを追加（Excelで文字化けを防ぐ）
+    const bom = new Uint8Array([0xef, 0xbb, 0xbf]);
+    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+    
+    // ダウンロード処理
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = `properties_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    
+    // メモリ解放
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -199,6 +241,17 @@ const PropertyList = ({ session, onLogout }: PropertyListProps) => {
       </div>
 
       <h2 style={{ marginTop: '28px' }}>物件一覧</h2>
+      {isAdmin && (
+        <div style={{ marginBottom: '20px' }}>
+          <button
+            type="button"
+            style={{ background: '#059669' }}
+            onClick={downloadAsCSV}
+          >
+            CSVダウンロード
+          </button>
+        </div>
+      )}
       <div className="property-grid">
         {properties.map((property) => (
           <div key={property.id} className="property-card">
