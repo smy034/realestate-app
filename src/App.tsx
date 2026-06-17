@@ -17,8 +17,8 @@ function App() {
       setLoading(false);
     });
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, sessionData) => {
-      setSession(sessionData?.session ?? null);
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session ?? null);
       if (event === 'SIGNED_IN') {
         navigate('/');
       }
@@ -46,7 +46,7 @@ function App() {
         <Route
           path="/"
           element={
-            session ? <PropertyList onLogout={handleLogout} /> : <Navigate to="/login" replace />
+            session ? <PropertyList session={session} onLogout={handleLogout} /> : <Navigate to="/login" replace />
           }
         />
         <Route path="/login" element={<Login session={session} />} />
