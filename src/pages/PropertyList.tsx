@@ -17,10 +17,8 @@ interface PropertyListProps {
 
 const PropertyList = ({ session, onLogout }: PropertyListProps) => {
   const [properties, setProperties] = useState<Property[]>([]);
-  // 管理者メール一覧を環境変数で設定可能にする（Vercel で VITE_ADMIN_EMAILS を設定）
-  const adminEmailsEnv = (import.meta.env.VITE_ADMIN_EMAILS as string) || 'kanri@exsmpie.com';
-  const adminEmails = adminEmailsEnv.split(',').map((s) => s.trim().toLowerCase());
-  const isAdmin = adminEmails.includes(session?.user?.email?.toLowerCase());
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [name, setName] = useState('');
   const [rent, setRent] = useState('');
   const [area, setArea] = useState('');
@@ -31,13 +29,14 @@ const PropertyList = ({ session, onLogout }: PropertyListProps) => {
 
   const userId = session?.user?.id;
 
-  const loadProperties = async () => {
+  const loadProperties = async (adminMode?: boolean) => {
     setMessage('');
+    const admin = adminMode ?? isAdmin;
     let query = supabase
       .from('properties')
       .select('id, name, rent, area, layout, user_id');
 
-    if (!isAdmin) {
+    if (!admin) {
       query = query.eq('user_id', userId ?? '');
     }
 
@@ -51,9 +50,34 @@ const PropertyList = ({ session, onLogout }: PropertyListProps) => {
     setProperties(data ?? []);
   };
 
+  const checkAdmin = async () => {
+    if (!session?.user?.email) {
+      return false;
+    }
+
+    const { data, error } = await supabase
+      .from('admin_users')
+      .select('email')
+      .eq('email', session.user.email)
+      .limit(1);
+
+    if (error) {
+      console.error('admin check failed', error.message);
+      return false;
+    }
+
+    return (data?.length ?? 0) > 0;
+  };
+
   useEffect(() => {
-    loadProperties();
-  }, []);
+    const init = async () => {
+      const adminMode = await checkAdmin();
+      setIsAdmin(adminMode);
+      await loadProperties(adminMode);
+      setCheckingAdmin(false);
+    };
+    init();
+  }, [session]);
 
   const resetForm = () => {
     setName('');
