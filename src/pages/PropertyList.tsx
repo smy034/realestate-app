@@ -17,7 +17,10 @@ interface PropertyListProps {
 
 const PropertyList = ({ session, onLogout }: PropertyListProps) => {
   const [properties, setProperties] = useState<Property[]>([]);
-  const isAdmin = session?.user?.email?.toLowerCase() === 'kanri@exsmpie.com';
+  // 管理者メール一覧を環境変数で設定可能にする（Vercel で VITE_ADMIN_EMAILS を設定）
+  const adminEmailsEnv = (import.meta.env.VITE_ADMIN_EMAILS as string) || 'kanri@exsmpie.com';
+  const adminEmails = adminEmailsEnv.split(',').map((s) => s.trim().toLowerCase());
+  const isAdmin = adminEmails.includes(session?.user?.email?.toLowerCase());
   const [name, setName] = useState('');
   const [rent, setRent] = useState('');
   const [area, setArea] = useState('');
